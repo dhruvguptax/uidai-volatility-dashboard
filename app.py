@@ -5,10 +5,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import utils
 
-
-from data_processing import process_uidai_data
 
 
 st.set_page_config(
@@ -174,5 +171,6 @@ st.caption(
     "This dashboard uses only aggregated, anonymized Aadhaar data and is intended "
     "for policy analysis and operational decision support."
 )
+
 
 
