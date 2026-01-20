@@ -9,14 +9,54 @@ st.set_page_config(
 )
 
 st.title("UIDAI Demographic Volatility Monitoring Platform")
-st.caption(
-    "Early-warning signals for demographic stress using aggregated Aadhaar update data"
+st.caption("Early-warning signals for demographic stress using aggregated Aadhaar update data")
+
+# =========================
+# INTRO / STORY
+# =========================
+st.markdown("""
+## 🧩 What Problem Are We Solving?
+
+UIDAI manages Aadhaar enrolment and demographic update infrastructure across India.  
+However, demand for updates is **uneven and unpredictable**, driven by:
+
+- Migration
+- Seasonal population movement
+- Lifecycle transitions (children, youth, adults)
+
+Today, infrastructure stress is often handled **after congestion occurs**.
+
+---
+
+## 💡 What This Platform Does
+
+This platform acts as an **early-warning system** by analysing **aggregated Aadhaar demographic update data** to:
+
+- Detect abnormal volatility patterns
+- Identify states under demographic churn
+- Support **proactive operational planning**
+
+⚠️ No individual-level or sensitive data is used.
+""")
+
+
+st.sidebar.header("Data Input")
+
+uploaded_file = st.sidebar.file_uploader(
+    "Upload Aggregated UIDAI CSV",
+    type=["csv"],
+    help="Upload monthly aggregated Aadhaar demographic update data (CSV format)"
 )
 
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    st.sidebar.success("Custom dataset loaded")
+else:
+    df = pd.read_csv("data/uidai_data.csv")
+    st.sidebar.info("Using default sample dataset")
 
-df = pd.read_csv("api_data_aadhar_demographic_0_500000.csv")
+
 df["date"] = pd.to_datetime(df["date"], dayfirst=True)
-
 
 long_df = df.melt(
     id_vars=["date", "state", "district", "pincode"],
@@ -41,15 +81,16 @@ monthly["rolling_std"] = monthly.groupby(
 monthly["volatility_score"] = monthly["rolling_std"] / monthly["rolling_mean"]
 monthly = monthly.dropna()
 
-def classify(v):
-    if v < 0.2:
-        return "Stable"
-    elif v < 0.5:
-        return "Monitor"
-    else:
-        return "Immediate Attention"
 
-monthly["risk_flag"] = monthly["volatility_score"].apply(classify)
+def classify(score):
+    if score < 0.2:
+        return "Low Volatility"
+    elif score < 0.5:
+        return "Moderate Volatility"
+    else:
+        return "High Volatility"
+
+monthly["volatility_flag"] = monthly["volatility_score"].apply(classify)
 
 
 latest = monthly.sort_values("date").groupby(
@@ -58,7 +99,7 @@ latest = monthly.sort_values("date").groupby(
 
 
 state_risk = latest.groupby("state")["volatility_score"].mean().reset_index()
-state_risk["risk_flag"] = state_risk["volatility_score"].apply(classify)
+state_risk["volatility_flag"] = state_risk["volatility_score"].apply(classify)
 
 
 state_coords = {
@@ -82,38 +123,33 @@ state_coords = {
     "West Bengal": (22.99, 87.85)
 }
 
-state_risk["lat"] = state_risk["state"].apply(
-    lambda x: state_coords.get(x, (None, None))[0]
-)
-state_risk["lon"] = state_risk["state"].apply(
-    lambda x: state_coords.get(x, (None, None))[1]
-)
-
+state_risk["lat"] = state_risk["state"].apply(lambda x: state_coords.get(x, (None, None))[0])
+state_risk["lon"] = state_risk["state"].apply(lambda x: state_coords.get(x, (None, None))[1])
 state_risk = state_risk.dropna(subset=["lat", "lon"])
 
 
 st.subheader("National Risk Snapshot")
 
-col1, col2, col3 = st.columns(3)
+c1, c2, c3 = st.columns(3)
 
-col1.metric("Total States", state_risk.shape[0])
-col2.metric(
-    "High Risk States",
-    (state_risk["risk_flag"] == "Immediate Attention").sum()
+c1.metric("Total States", state_risk.shape[0])
+c2.metric(
+    "High Volatility States",
+    (state_risk["volatility_flag"] == "High Volatility").sum()
 )
-col3.metric(
-    "States to Monitor",
-    (state_risk["risk_flag"] == "Monitor").sum()
+c3.metric(
+    "Moderate Volatility States",
+    (state_risk["volatility_flag"] == "Moderate Volatility").sum()
 )
 
 
-st.subheader("India Demographic Risk Map")
+st.subheader("India Demographic Volatility Map")
 
 fig_map = px.scatter_geo(
     state_risk,
     lat="lat",
     lon="lon",
-    color="risk_flag",
+    color="volatility_flag",
     size="volatility_score",
     hover_name="state",
     projection="natural earth"
@@ -122,20 +158,19 @@ fig_map = px.scatter_geo(
 fig_map.update_geos(
     scope="asia",
     center=dict(lat=22.5, lon=78.9),
-    projection_scale=4,
-    showcountries=True,
-    countrycolor="LightGray"
+    projection_scale=4
 )
 
 st.plotly_chart(fig_map, use_container_width=True)
 
-st.subheader("State-Level Demographic Volatility")
+
+st.subheader("State-Level Volatility Ranking")
 
 fig_state = px.bar(
     state_risk.sort_values("volatility_score", ascending=False),
     x="state",
     y="volatility_score",
-    color="risk_flag"
+    color="volatility_flag"
 )
 
 st.plotly_chart(fig_state, use_container_width=True)
@@ -156,6 +191,7 @@ fig_age = px.bar(
 
 st.plotly_chart(fig_age, use_container_width=True)
 
+
 st.subheader("National Volatility Trend Over Time")
 
 trend = monthly.groupby("date")["volatility_score"].mean().reset_index()
@@ -168,8 +204,18 @@ fig_trend = px.line(
 
 st.plotly_chart(fig_trend, use_container_width=True)
 
-st.caption(
-    "This platform uses only aggregated, anonymized Aadhaar data "
-    "to support proactive governance and operational planning."
-)
 
+st.markdown("""
+## 🛠 How Should This Be Used?
+
+- **High Volatility** → temporary enrolment kits, staffing surge  
+- **Moderate Volatility** → monitoring & preparedness  
+- **Rising national trend** → pre-emptive allocation before congestion  
+
+This enables UIDAI to move from **reactive service delivery** to **proactive governance**.
+""")
+
+st.caption(
+    "This dashboard uses only aggregated, anonymized Aadhaar data and is intended "
+    "for policy analysis and operational planning."
+)
