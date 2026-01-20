@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import utils
+
 
 from data_processing import process_uidai_data
-from utils import get_state_coords
 
 
 st.set_page_config(
@@ -67,8 +68,9 @@ state_risk = outputs["state_risk"]
 age_summary = outputs["age_summary"]
 trend = outputs["trend"]
 
-state_risk["lat"] = state_risk["state"].apply(lambda x: get_state_coords(x)[0])
-state_risk["lon"] = state_risk["state"].apply(lambda x: get_state_coords(x)[1])
+state_risk["lat"] = state_risk["state"].apply(lambda x: utils.get_state_coords(x)[0])
+state_risk["lon"] = state_risk["state"].apply(lambda x: utils.get_state_coords(x)[1])
+
 state_risk = state_risk.dropna(subset=["lat", "lon"])
 
 st.subheader("National Risk Snapshot")
@@ -168,3 +170,4 @@ st.caption(
     "This dashboard uses only aggregated, anonymized Aadhaar data and is intended "
     "for policy analysis and operational decision support."
 )
+
