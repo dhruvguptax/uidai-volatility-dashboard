@@ -6,7 +6,7 @@ st.set_page_config(layout="wide")
 st.title("UIDAI Demographic Volatility Monitoring Platform")
 
 # Load data
-df = pd.read_csv("1ca0dc3f-2388-4e9b-8242-745ac06a8863.csv")
+df = pd.read_csv("api_data_aadhar_demographic_0_500000.csv")
 df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
 # Reshape
@@ -72,3 +72,4 @@ st.subheader("National Trend")
 trend = monthly.groupby("date")["volatility_score"].mean().reset_index()
 fig3 = px.line(trend, x="date", y="volatility_score")
 st.plotly_chart(fig3, use_container_width=True)
+
