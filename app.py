@@ -14,7 +14,7 @@ st.caption(
 )
 
 
-df = pd.read_csv("data/uidai_data.csv")
+df = pd.read_csv("api_data_aadhar_demographic_0_500000.csv")
 df["date"] = pd.to_datetime(df["date"], dayfirst=True)
 
 
@@ -172,3 +172,4 @@ st.caption(
     "This platform uses only aggregated, anonymized Aadhaar data "
     "to support proactive governance and operational planning."
 )
+
